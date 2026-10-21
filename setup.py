@@ -29,8 +29,6 @@ setup(
     extras_require={
         # 只有截图识别 / 实时模式需要
         "vision": ["Pillow>=9.0", "numpy>=1.21"],
-        # 更快的截屏后端（可选）
-        "fast-capture": ["mss>=7.0"],
     },
     entry_points={
         "console_scripts": [

@@ -1,0 +1,45 @@
+name: 算错了 / 程序出错
+description: 数学结果不对、番种判定不对、或者代码报错
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        谢谢反馈。数学类问题请尽量给完整信息，不然没法复现。
+        **请不要上传真实游戏截图**（可能含个人信息），用文字描述牌面即可。
+  - type: dropdown
+    id: ruleset
+    attributes:
+      label: 规则
+      options: [国标 gb, 四川血战 sichuan, 长沙 changsha, 广东推倒和 guangdong, 自定义 custom]
+    validations: { required: true }
+  - type: input
+    id: hand
+    attributes:
+      label: 手牌
+      description: 紧凑格式，如 `123m456p789s11z235m`
+      placeholder: "123m456p789s11z235m"
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你期望的结果
+      description: 比如"应该听 1m/4m，共 7 张"或者"应该是 8 番"
+    validations: { required: true }
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 贴 `--json` 输出更好；至少贴上出问题的那几个字段
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现命令
+      placeholder: |
+        python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 环境
+      placeholder: "v1.0.0 / Python 3.9.13 / Windows 10"

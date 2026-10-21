@@ -6,6 +6,8 @@
     python -m vision.cli recognize 截图.png --ruleset sichuan --turn 5 --analyze
     python -m vision.cli calibrate                           # 打开标定工具
     python -m vision.cli selftest                            # 合成图自测
+
+输入永远是**你手上的一张图片文件**，程序不抓屏、不监听游戏窗口。
 """
 
 from __future__ import annotations
@@ -14,7 +16,6 @@ import argparse
 import json
 import os
 import sys
-import time
 
 from .pack import TILE_NAMES, Layout, TemplatePack, default_layout_path, default_pack_path
 
@@ -79,81 +80,6 @@ def cmd_recognize(args):
     return 0
 
 
-def cmd_watch(args):
-    """控制台实时模式：牌一变就打印一条建议。"""
-    from .capture import Capturer, list_backends
-    from .live import LiveConfig, LiveSession
-    from .pack import Layout, TemplatePack, default_layout_path, default_pack_path
-
-    pack_path = args.pack or default_pack_path()
-    layout_path = args.layout or default_layout_path()
-    if not os.path.exists(pack_path):
-        raise SystemExit("没有模板包：%s；先跑 python -m vision.cli calibrate" % pack_path)
-    if not os.path.exists(layout_path):
-        raise SystemExit("没有版面：%s；先跑 python -m vision.cli calibrate" % layout_path)
-    layout = Layout.load(layout_path)
-    roi = layout.roi()
-    if roi is None:
-        raise SystemExit("版面里没有手牌区，重新标定一次")
-
-    try:
-        capturer = Capturer(backend=args.backend)
-    except Exception as exc:
-        raise SystemExit("截屏不可用：%s" % exc)
-
-    cfg = LiveConfig(ruleset=args.ruleset, turn=args.turn, wall=args.wall,
-                     interval=args.interval)
-    session = LiveSession(capturer, TemplatePack.load(pack_path), layout, cfg)
-    print("实时监看 %r（后端 %s，每 %.2fs 轮询）" % (roi, capturer.backend_name, args.interval))
-    print("牌一变就会打印建议；Ctrl+C 停止。" + NL)
-    count = 0
-    try:
-        while True:
-            res = session.poll()
-            if not res.changed:
-                time.sleep(max(0.05, args.interval))
-                continue
-            count += 1
-            print("─" * 62)
-            print("[%d] %s   置信度 %.2f   %s" % (
-                count, res.hand, res.confidence,
-                " ".join("%s=%.0fms" % kv for kv in res.timings.items())))
-            for w in res.warnings:
-                print("   ⚠ %s" % w)
-            report = res.report or {}
-            s_val = report.get("shanten")
-            tag = "已和牌" if s_val is not None and s_val < 0 else (
-                "听牌" if s_val == 0 else "%d 向听" % s_val)
-            print("   %s · 进张 %s · 和牌率 %.0f%%" % (
-                tag, report.get("ukeire", 0),
-                (report.get("probability") or {}).get("win_final", 0) * 100))
-            waits = report.get("waits") or {}
-            if waits:
-                print("   待牌 " + " ".join("%s×%d" % (k, v) for k, v in waits.items()))
-            if res.partial:
-                print("   排序补算中…", end="", flush=True)
-                refined = session.refine()
-                if refined is not None:
-                    print(chr(13) + " " * 30 + chr(13), end="", flush=True)
-                    res = refined
-                    report = res.report or {}
-            for i, d in enumerate(res.top_discards(3)):
-                print("   %s 打 %-3s %-5s 进张%-3d 和牌%3.0f%% 铳%3.0f%% EV %6.2f" % (
-                    "▶" if i == 0 else " ", d["name"],
-                    "听牌" if d["shanten"] == 0 else "%d向听" % d["shanten"],
-                    d["ukeire"], d["win_prob"] * 100, d["deal_prob"] * 100, d["ev"]))
-            adv = report.get("advice") or {}
-            if adv:
-                print("   → %s" % adv.get("advice", ""))
-            sys.stdout.flush()
-            time.sleep(max(0.05, args.interval))
-    except KeyboardInterrupt:
-        print(NL + "已停止（共 %d 次变化）" % count)
-    finally:
-        session.close()
-    return 0
-
-
 def cmd_calibrate(args):
     from .calibrate import main as cmain
     return cmain([])
@@ -206,17 +132,6 @@ def main(argv=None):
     sub.add_parser("calibrate", help="打开标定工具").add_argument(
         "--json", action="store_true", default=argparse.SUPPRESS)
 
-    w = sub.add_parser("watch", help="实时监看（牌一变就打印建议）")
-    w.add_argument("--pack", default=None)
-    w.add_argument("--layout", default=None)
-    w.add_argument("--ruleset", default="gb")
-    w.add_argument("--turn", type=int, default=1)
-    w.add_argument("--wall", type=int, default=None)
-    w.add_argument("--interval", type=float, default=0.4)
-    w.add_argument("--backend", default="auto",
-                   help="截屏后端：auto / mss / gdi / pil")
-    w.add_argument("--json", action="store_true", default=argparse.SUPPRESS)
-
     s = sub.add_parser("selftest", help="合成图端到端自测")
     s.add_argument("--rounds", type=int, default=30)
     s.add_argument("--seed", type=int, default=0)
@@ -230,8 +145,6 @@ def main(argv=None):
         return cmd_recognize(args)
     if args.cmd == "calibrate":
         return cmd_calibrate(args)
-    if args.cmd == "watch":
-        return cmd_watch(args)
     if args.cmd == "selftest":
         return cmd_selftest(args)
     return 0

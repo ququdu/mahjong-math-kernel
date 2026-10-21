@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """图像基础：加载、裁剪、缩放、灰度化。
 
+只处理**磁盘上的图片文件**。这里刻意没有截屏功能——本项目的定位是
+离线分析，不做屏幕抓取（见 DISCLAIMER.md）。
+
 只依赖 Pillow + numpy（都是现成的）；不装 OpenCV 也能跑。
 装了 OpenCV 也不会自动用它——匹配走的是 numpy 向量化，够快。
 """
@@ -126,9 +129,3 @@ def save_image(arr, path):
     Image.fromarray(a).save(path)
 
 
-def grab_screen(bbox: Optional[Tuple[int, int, int, int]] = None):
-    """截屏（仅 Windows/macOS 有 ImageGrab；失败就抛错，调用方自己决定）。"""
-    require_pil()
-    from PIL import ImageGrab
-    im = ImageGrab.grab(bbox=bbox) if bbox else ImageGrab.grab()
-    return np.array(im.convert("RGB"))

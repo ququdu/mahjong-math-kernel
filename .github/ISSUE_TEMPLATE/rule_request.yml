@@ -1,0 +1,33 @@
+name: 我的地方规则不一样
+description: 某个地区的规则和内置的四套不一样
+labels: [rules]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        地方规则差异很大，欢迎补充。请尽量具体，最好能给一份完整的计分说明。
+  - type: input
+    id: region
+    attributes:
+      label: 哪个地区 / 哪种玩法
+      placeholder: "比如：武汉麻将（红中赖子杠）"
+    validations: { required: true }
+  - type: textarea
+    id: differences
+    attributes:
+      label: 和内置规则的主要差异
+      description: 牌张数、能不能吃、起和条件、番种表、付法
+    validations: { required: true }
+  - type: textarea
+    id: examples
+    attributes:
+      label: 具体例子
+      description: 至少一正一反：一手能和的、一手不能和的，附上你期望的番数/点数
+    validations: { required: true }
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: 你愿意自己提交实现吗？
+      options:
+        - label: 我可以写 RuleSet 子类并发 PR
+        - label: 我只提供规则说明，实现麻烦你们

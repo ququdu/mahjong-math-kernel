@@ -142,10 +142,10 @@ class Layout:
         }
 
     def roi(self, margin: int = 6):
-        """实时模式要截的屏幕区域（手牌 + 全部副露区 + 边距）。
+        """手牌区 + 副露区的外接矩形（可以先裁剪截图再识别）。
 
-        返回 ``(x, y, w, h)``，直接喂给 ``vision.capture.Capturer``。
-        标定过版面就不用再单独标一次截图区域。
+        返回 ``(x, y, w, h)``。整屏截图里牌只占一小块时，先按这个矩形裁一刀，
+        识别会快很多、也更准。
         """
         regions = [r for r in ([self.hand] if self.hand else []) + list(self.melds) if r]
         if not regions:
@@ -176,7 +176,7 @@ class Layout:
         return cls(hand=hand, melds=melds, notes=d.get("notes", ""))
 
     def shifted(self, dx: int, dy: int):
-        """整份版面平移（截图只抓 ROI 时用）。"""
+        """整份版面平移（截图被裁剪过时，用裁剪的偏移量平一下）。"""
         def move(r):
             return None if r is None else Region(
                 x=r.x - dx, y=r.y - dy, cell_w=r.cell_w, cell_h=r.cell_h,
