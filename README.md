@@ -87,9 +87,8 @@ python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5
 想当库用（`pip install` 后可以直接 `import mahjong_kernel`）：
 
 ```bash
-pip install -e .                 # 只要内核
-pip install -e ".[vision]"       # 带截图识别（Pillow + numpy）
-pip install -e ".[vision,fast-capture]"   # 再带更快的截屏后端 mss
+pip install -e .                 # 只要内核（零依赖）
+pip install -e ".[vision]"       # 带离线截图识别（Pillow + numpy）
 ```
 
 装完会多两个命令：`mahjong-kernel` 和 `mahjong-vision`。
