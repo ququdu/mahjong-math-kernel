@@ -35,22 +35,7 @@ jobs:
       - name: 验证内核不依赖第三方包
         shell: bash
         run: |
-          python - <<'EOF'
-          import subprocess, sys, json
-          out = subprocess.check_output(
-              [sys.executable, "-c",
-               "import sys, json, mahjong_kernel;"
-               "from mahjong_kernel import Engine;"
-               "e = Engine();"
-               "r = e.analyze({'hand': '123m456p789s11z235m', 'turn': 5});"
-               "bad = [m for m in ('numpy', 'PIL', 'cv2') if m in sys.modules];"
-               "print(json.dumps({'shanten': r['shanten'], 'third_party': bad}))"],
-              cwd=".")
-          data = json.loads(out.decode())
-          print(data)
-          assert data["shanten"] == 0
-          assert data["third_party"] == [], data["third_party"]
-          EOF
+          python -c 'import sys; from mahjong_kernel import Engine; r = Engine().analyze({"hand": "123m456p789s11z235m", "turn": 5}); bad = [m for m in ("numpy", "PIL", "cv2") if m in sys.modules]; print("shanten =", r["shanten"], "| 第三方模块 =", bad); assert r["shanten"] == 0, "向听算错了"; assert not bad, "内核竟然 import 了第三方包: %r" % bad'
 
   cli-smoke:
     name: CLI / HTTP 冒烟
@@ -67,4 +52,5 @@ jobs:
           python -m mahjong_kernel.api.cli equations | head -5
       - name: 方程对照表必须正好 45 条
         run: |
-          python -m mahjong_kernel.api.cli equations --json             | python -c "import json,sys; d=json.load(sys.stdin); assert len(d)==45, len(d); print('45 equations OK')"
+          python -m mahjong_kernel.api.cli equations --json > eq.json
+          python -c "import json; d = json.load(open('eq.json', encoding='utf-8')); assert len(d) == 45, len(d); print('45 equations OK')"
