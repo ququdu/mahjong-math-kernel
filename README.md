@@ -1,5 +1,9 @@
 # 麻将数学内核 · Mahjong Math Kernel
 
+[![tests](https://github.com/ququdu/mahjong-math-kernel/actions/workflows/tests.yml/badge.svg)](https://github.com/ququdu/mahjong-math-kernel/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+
 **麻将能不能被算出来？能算的部分比大多数人想的多，能算的边界也比视频里说的窄。**
 
 这个仓库把麻将里**真能算**的东西算出来，把**只能用模型**的东西明确标成模型，
@@ -49,6 +53,28 @@ python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5 --wall 6
 国标/四川/广东里打过的牌别人照样可以和，「现物=绝对安全」不成立。
 唯一绝对安全的只有「四张都在场上」。
 → [推导](docs/math.md#5-中国麻将的安全度不能照搬日麻)
+
+---
+
+## 安装
+
+内核本身**零依赖**，只要 Python 3.9+：
+
+```bash
+git clone https://github.com/ququdu/mahjong-math-kernel
+cd mahjong-math-kernel
+python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5
+```
+
+想当库用（`pip install` 后可以直接 `import mahjong_kernel`）：
+
+```bash
+pip install -e .                 # 只要内核
+pip install -e ".[vision]"       # 带截图识别（Pillow + numpy）
+pip install -e ".[vision,fast-capture]"   # 再带更快的截屏后端 mss
+```
+
+装完会多两个命令：`mahjong-kernel` 和 `mahjong-vision`。
 
 ---
 

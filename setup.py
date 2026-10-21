@@ -16,6 +16,7 @@ setup(
     author="mahjong-math-kernel contributors",
     author_email="noreply@users.noreply.github.com",
     license="MIT",
+    url="https://github.com/ququdu/mahjong-math-kernel",
     python_requires=">=3.9",
     packages=[
         "mahjong_kernel",
