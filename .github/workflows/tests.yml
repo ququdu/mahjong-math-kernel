@@ -46,10 +46,12 @@ jobs:
         with:
           python-version: "3.12"
       - name: 命令行
+        shell: bash
         run: |
           python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5 --wall 60
           python -m mahjong_kernel.api.cli score "123m456p789s111z22z" --win 2z
-          python -m mahjong_kernel.api.cli equations | head -5
+          python -m mahjong_kernel.api.cli equations > equations.txt
+          head -5 equations.txt
       - name: 方程对照表必须正好 45 条
         run: |
           python -m mahjong_kernel.api.cli equations --json > eq.json

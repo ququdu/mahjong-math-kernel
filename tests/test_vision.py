@@ -422,3 +422,50 @@ def test_live_two_stage_partial_then_refined():
     assert full.report["hand"] == lite.report["hand"]
     assert session.refine() is None                   # 没有待补的了
     session.close()
+
+
+# ---------------------------------------------------------------------------
+#  截屏后端探测：能 import 不等于能抓图
+# ---------------------------------------------------------------------------
+
+def test_backend_that_cannot_grab_is_rejected(monkeypatch):
+    """无头 Linux 上 PIL.ImageGrab 能 import 但一 grab 就抛；这种后端不能被选中。"""
+    import vision.capture as cap
+
+    class Broken:
+        name = "broken"
+
+        def grab(self, bbox):
+            raise OSError("no display")
+
+        def close(self):
+            pass
+
+    monkeypatch.setitem(cap._BACKENDS, "broken", Broken)
+    with pytest.raises(Exception):
+        cap._try_backend("broken")
+
+    # 自动选择时必须跳过它，落到下一个可用后端
+    with pytest.raises(RuntimeError) as ei:
+        cap._make_backend("broken")
+    assert "没有可用的截屏后端" in str(ei.value)
+
+
+def test_backend_probe_returns_working_backend(monkeypatch):
+    import numpy as np
+    import vision.capture as cap
+
+    class Fake:
+        name = "fake"
+
+        def grab(self, bbox):
+            x, y, w, h = bbox
+            return np.zeros((h, w, 3), dtype=np.uint8)
+
+        def close(self):
+            pass
+
+    monkeypatch.setitem(cap._BACKENDS, "fake", Fake)
+    be = cap._try_backend("fake")
+    assert be.name == "fake"
+    be.close()

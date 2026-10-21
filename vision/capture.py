@@ -200,20 +200,47 @@ class _PilBackend:
 _BACKENDS = {"mss": _MssBackend, "gdi": _GdiBackend, "pil": _PilBackend}
 
 
+PROBE_BBOX = (0, 0, 8, 8)
+
+
+def _try_backend(name, probe=True):
+    """构造后端，并且**真的抓一次 8×8** 才算可用。
+
+    只 import 成功是不够的：无头 Linux 上 ``PIL.ImageGrab`` 能 import，
+    但一 grab 就抛异常。探测一次能避免"选了一个抓不了屏的后端"。
+    """
+    cls = _BACKENDS.get(name)
+    if cls is None:
+        raise RuntimeError("未知后端 %r" % (name,))
+    if name == "gdi" and not sys.platform.startswith("win"):
+        raise RuntimeError("GDI 只在 Windows 上可用")
+    be = cls()
+    if probe:
+        try:
+            arr = be.grab(PROBE_BBOX)
+            if getattr(arr, "size", 0) == 0:
+                raise RuntimeError("抓到空图")
+        except Exception:
+            be.close()
+            raise
+    return be
+
+
 def _make_backend(prefer="auto"):
     order = ["mss", "gdi", "pil"] if prefer in ("auto", None) else [prefer]
     errors = []
     for name in order:
-        cls = _BACKENDS.get(name)
-        if cls is None:
+        if name not in _BACKENDS:
             continue
         if name == "gdi" and not sys.platform.startswith("win"):
             continue
         try:
-            return cls()
+            return _try_backend(name)
         except Exception as exc:  # noqa: BLE001
             errors.append("%s: %s" % (name, exc))
-    raise RuntimeError("没有可用的截屏后端（%s）" % ("; ".join(errors) or "未知"))
+    raise RuntimeError(
+        "没有可用的截屏后端（%s）。无头/无图形环境下这是正常的。"
+        % ("; ".join(errors) or "未知"))
 
 
 class Capturer:
@@ -261,13 +288,13 @@ class Capturer:
 
 
 def list_backends():
-    """当前机器上哪些后端可用（给界面显示用）。"""
+    """当前机器上哪些后端**真的能抓到图**（会各探测一次，很便宜）。"""
     out = []
     for name in ("mss", "gdi", "pil"):
         if name == "gdi" and not sys.platform.startswith("win"):
             continue
         try:
-            be = _BACKENDS[name]()
+            be = _try_backend(name)
             be.close()
             out.append(name)
         except Exception:
