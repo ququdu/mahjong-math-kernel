@@ -1,0 +1,9 @@
+# 跨平台行尾处理：Windows 脚本必须 CRLF，其余保持 LF
+* text=auto
+*.bat text eol=crlf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.png binary
+*.npz binary

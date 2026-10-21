@@ -1,0 +1,70 @@
+name: tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: py${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pillow numpy
+
+      - name: 跑测试
+        run: python -m pytest tests -q
+
+      # 内核本身必须零依赖，单独验一次
+      - name: 验证内核不依赖第三方包
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import subprocess, sys, json
+          out = subprocess.check_output(
+              [sys.executable, "-c",
+               "import sys, json, mahjong_kernel;"
+               "from mahjong_kernel import Engine;"
+               "e = Engine();"
+               "r = e.analyze({'hand': '123m456p789s11z235m', 'turn': 5});"
+               "bad = [m for m in ('numpy', 'PIL', 'cv2') if m in sys.modules];"
+               "print(json.dumps({'shanten': r['shanten'], 'third_party': bad}))"],
+              cwd=".")
+          data = json.loads(out.decode())
+          print(data)
+          assert data["shanten"] == 0
+          assert data["third_party"] == [], data["third_party"]
+          EOF
+
+  cli-smoke:
+    name: CLI / HTTP 冒烟
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 命令行
+        run: |
+          python -m mahjong_kernel.api.cli analyze "123m456p789s11z235m" --turn 5 --wall 60
+          python -m mahjong_kernel.api.cli score "123m456p789s111z22z" --win 2z
+          python -m mahjong_kernel.api.cli equations | head -5
+      - name: 方程对照表必须正好 45 条
+        run: |
+          python -m mahjong_kernel.api.cli equations --json             | python -c "import json,sys; d=json.load(sys.stdin); assert len(d)==45, len(d); print('45 equations OK')"

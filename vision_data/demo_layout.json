@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hand": {
+    "mode": "row",
+    "x": 10,
+    "y": 10,
+    "cell_w": 40,
+    "cell_h": 56,
+    "pitch": 42.0,
+    "count": 14
+  },
+  "melds": [],
+  "notes": "synthetic"
+}

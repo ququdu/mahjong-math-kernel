@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+# 包的元数据放在 setup.py 里：这样 setuptools 58 这种老版本也能直接装，
+# 新一点的版本会读 [build-system] 走 PEP 517，两条路都通。
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# 不设 addopts：避免和外部调用的 -q 叠加成 -qq 把汇总行吃掉

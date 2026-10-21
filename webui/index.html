@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麻将数学内核</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --panel:#ffffff; --ink:#1b2330; --muted:#6b7789;
+    --line:#e2e7f0; --brand:#3554d1; --brand-soft:#eef1fe;
+    --ok:#12805c; --warn:#b25b00; --bad:#c0392b; --good:#0f7b52;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Cascadia Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",
+      "Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:14px;line-height:1.6;
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.5px}
+  header .sub{color:var(--muted);font-size:12px}
+  header .grow{flex:1}
+  header a{color:var(--brand);text-decoration:none;font-size:12px}
+  main{
+    flex:1;display:grid;grid-template-columns:380px minmax(0,1fr);gap:16px;
+    padding:16px 22px;min-height:0;
+  }
+  @media (max-width:1000px){ main{grid-template-columns:1fr} }
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  }
+  .panel > h2{
+    margin:0;padding:10px 14px;font-size:13px;font-weight:700;color:var(--muted);
+    border-bottom:1px solid var(--line);background:#fafbfe;
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel .body{padding:14px;overflow:auto;min-height:0}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+  input[type=text],input[type=number],select{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+    background:#fff;color:var(--ink);font-family:inherit;font-size:14px;outline:none;
+  }
+  input[type=text]:focus,select:focus,input[type=number]:focus{
+    border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);
+  }
+  .hand-input{font-family:var(--mono);font-size:17px;letter-spacing:.5px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .row.one{grid-template-columns:1fr}
+  .row.three{grid-template-columns:1fr 1fr 1fr}
+  .field{margin-bottom:10px}
+  .check{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);margin-top:22px}
+  .check input{width:16px;height:16px;accent-color:var(--brand)}
+  button{
+    font-family:inherit;font-size:13px;padding:8px 14px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;
+    transition:background .12s,border-color .12s,color .12s;
+  }
+  button:hover{background:#f6f8fd;border-color:#cfd8ea}
+  button.primary{
+    background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;
+  }
+  button.primary:hover{background:#2c47b8}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .actions{display:flex;gap:8px;margin-top:6px}
+  .actions button{flex:1}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:6px;
+    background:var(--brand-soft);color:var(--brand);border:1px solid #dbe2fb;
+    white-space:nowrap;
+  }
+  .chip .n{color:var(--muted);margin-left:3px}
+  .examples{display:flex;flex-wrap:wrap;gap:6px}
+  .examples button{font-size:12px;padding:5px 10px}
+  .meld-list{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:5px}
+  .meld-list li{
+    display:flex;align-items:center;gap:8px;font-size:12px;
+    border:1px solid var(--line);border-radius:7px;padding:5px 9px;background:#fafbfe;
+  }
+  .meld-list li span{flex:1;font-family:var(--mono)}
+  .meld-list li button{padding:2px 8px;font-size:11px}
+  .tabs{display:flex;gap:4px;padding:0 10px;border-bottom:1px solid var(--line);background:#fafbfe;overflow:auto}
+  .tabs button{
+    border:none;background:none;border-radius:0;padding:10px 14px;font-size:13px;
+    color:var(--muted);border-bottom:2px solid transparent;
+  }
+  .tabs button.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+  .tabs button:hover{background:#f2f5fd;color:var(--ink)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fafbfe}
+  .card .k{font-size:11px;color:var(--muted);letter-spacing:.4px}
+  .card .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}
+  .card .v small{font-size:12px;font-weight:400;color:var(--muted)}
+  .v.ok{color:var(--good)} .v.warn{color:var(--warn)} .v.bad{color:var(--bad)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;background:#fafbfe;position:sticky;top:0;z-index:1}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  tbody tr:hover{background:#f6f8fd}
+  tr.picked{background:var(--brand-soft)}
+  tr.forced td:first-child{color:var(--bad);font-weight:700}
+  .bar{height:5px;border-radius:3px;background:#e8ecf6;overflow:hidden;min-width:44px}
+  .bar i{display:block;height:100%;background:var(--brand)}
+  .bar.ev i{background:var(--good)}
+  canvas{width:100%;height:280px;display:block}
+  .warn-list{margin:0;padding-left:18px;color:var(--warn);font-size:12px}
+  .empty{color:var(--muted);font-size:13px;padding:14px 2px;text-align:center}
+  footer{
+    padding:7px 22px;border-top:1px solid var(--line);background:var(--panel);
+    font-size:12px;color:var(--muted);display:flex;gap:14px;
+  }
+  footer .err{color:var(--bad);font-weight:600}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;vertical-align:middle}
+  .tag.exact{background:#e6f5ef;color:var(--good)}
+  .tag.model{background:#fdf0e2;color:var(--warn)}
+  .tag.na{background:#eef0f4;color:var(--muted)}
+  .scroll{max-height:100%;overflow:auto}
+  dialog{border:none;border-radius:12px;padding:0;box-shadow:0 20px 50px rgba(20,30,60,.25)}
+  dialog::backdrop{background:rgba(20,26,40,.35)}
+  dialog .body{padding:16px 18px;min-width:280px}
+  dialog h3{margin:0 0 12px;font-size:15px}
+  dialog .actions{margin-top:14px}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:4px 10px;font-size:13px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  a.link{color:var(--brand);cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>麻将数学内核</h1>
+  <span class="sub" id="verLine">内核 v1.0.0</span>
+  <span class="grow"></span>
+  <span class="sub">协议 <span id="protoVer">1.0</span> ·</span>
+  <a class="link" id="protoLink">接口自描述</a>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>输入</h2>
+    <div class="body">
+      <div class="field">
+        <label>规则</label>
+        <select id="ruleset"></select>
+      </div>
+
+      <div class="field">
+        <label>手牌（支持 123m456p / 123万456筒789条 / 东东中）</label>
+        <input type="text" id="hand" class="hand-input" value="123m456p789s11z235m"
+               placeholder="例如 123m456p789s11z235m" spellcheck="false">
+      </div>
+
+      <div class="row three">
+        <div><label>巡目</label><input type="number" id="turn" value="5" min="1" max="20"></div>
+        <div><label>牌山剩余</label><input type="number" id="wall" placeholder="自动" min="0" max="136"></div>
+        <div><label>花牌</label><input type="number" id="flowers" value="0" min="0" max="8"></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>和牌张</label>
+          <input type="text" id="agari" placeholder="如 2z / 5m" spellcheck="false">
+        </div>
+        <div>
+          <label>定缺（四川/长沙）</label>
+          <select id="deficiency">
+            <option value="">不定缺</option>
+            <option value="m">万</option>
+            <option value="p">筒</option>
+            <option value="s">条</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>已见牌（手牌以外）</label>
+          <input type="text" id="visible" placeholder="如 1z1z5p" spellcheck="false">
+        </div>
+        <div class="check"><input type="checkbox" id="tsumo"><label for="tsumo" style="margin:0">自摸</label></div>
+      </div>
+
+      <div class="field">
+        <label>副露</label>
+        <ul class="meld-list" id="meldList"></ul>
+        <button id="addMeld" type="button">＋ 添加副露</button>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="calc">计算</button>
+        <button id="shot" type="button">截图识别</button>
+        <button id="clear" type="button">清空</button>
+      </div>
+      <input type="file" id="shotFile" accept="image/*" hidden>
+
+      <div class="field" style="margin-top:14px">
+        <label>示例</label>
+        <div class="examples" id="examples"></div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="panel">
+    <div class="tabs" id="tabs">
+      <button data-tab="overview" class="on">概览</button>
+      <button data-tab="discards">弃牌建议</button>
+      <button data-tab="score">番种点数</button>
+      <button data-tab="curve">概率曲线</button>
+      <button data-tab="equations">方程对照</button>
+    </div>
+
+    <div class="body" id="tab-overview">
+      <div class="cards" id="cards"></div>
+      <div id="waitWrap" style="margin-top:14px"></div>
+      <div id="warnWrap" style="margin-top:12px"></div>
+      <div id="scoreMini" style="margin-top:12px"></div>
+    </div>
+
+    <div class="body scroll" id="tab-discards" hidden>
+      <div id="discardTable"></div>
+      <div id="discardDetail" style="margin-top:14px"></div>
+    </div>
+
+    <div class="body scroll" id="tab-score" hidden>
+      <div id="scorePanel"></div>
+    </div>
+
+    <div class="body" id="tab-curve" hidden>
+      <canvas id="chart"></canvas>
+      <div id="curveNote" class="empty" style="text-align:left"></div>
+    </div>
+
+    <div class="body scroll" id="tab-equations" hidden>
+      <div id="equationTable" class="empty">加载中…</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span id="status">就绪</span>
+  <span class="grow" style="flex:1"></span>
+  <span id="timing"></span>
+</footer>
+
+<dialog id="meldDlg">
+  <div class="body">
+    <h3>添加副露</h3>
+    <div class="field">
+      <label>类型</label>
+      <select id="meldKind">
+        <option value="chi">吃（顺子）</option>
+        <option value="pon">碰（刻子）</option>
+        <option value="minkan">明杠</option>
+        <option value="ankan">暗杠</option>
+        <option value="kakan">加杠</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>牌（顺子填起始牌，如 3m 表示 345m）</label>
+      <input type="text" id="meldTile" class="hand-input" placeholder="如 5z / 3m" spellcheck="false">
+    </div>
+    <div class="actions">
+      <button class="primary" id="meldOk">添加</button>
+      <button id="meldCancel">取消</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const KIND_CN = {chi:"吃", pon:"碰", minkan:"明杠", ankan:"暗杠", kakan:"加杠"};
+const TILE_NAMES = (() => {
+  const t = [];
+  for (const s of ["m", "p", "s"]) for (let r = 1; r <= 9; r++) t.push(r + s);
+  ["东", "南", "西", "北", "白", "发", "中"].forEach((h) => t.push(h));
+  return t;
+})();
+function tileName(i) { return TILE_NAMES[i] || ("?" + i); }
+const state = { rulesets: [], melds: [], report: null, protocol: null, tab: "overview", pickedDiscard: null };
+
+/* ---------------- 基础工具 ---------------- */
+
+async function api(path, payload) {
+  const opt = payload === undefined ? {} : {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  };
+  const res = await fetch("/api/" + path, opt);
+  let data;
+  try { data = await res.json(); }
+  catch (e) { throw new Error("服务返回的不是 JSON（HTTP " + res.status + "）"); }
+  if (!res.ok) throw new Error(data && data.error ? data.error : ("HTTP " + res.status));
+  return data;
+}
+
+function setStatus(text, isError) {
+  const el = $("status");
+  el.textContent = text;
+  el.className = isError ? "err" : "";
+}
+
+function pct(v) { return (v * 100).toFixed(1) + "%"; }
+function num(v, d) { return (v === null || v === undefined) ? "—" : Number(v).toFixed(d === undefined ? 2 : d); }
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+
+function tileChips(map) {
+  const wrap = el("div", "chips");
+  const keys = Object.keys(map || {});
+  if (!keys.length) { wrap.appendChild(el("span", "empty", "无")); return wrap; }
+  keys.forEach((k) => {
+    const c = el("span", "chip");
+    c.appendChild(document.createTextNode(k));
+    const n = el("span", "n", "×" + map[k]);
+    c.appendChild(n);
+    wrap.appendChild(c);
+  });
+  return wrap;
+}
+
+/* ---------------- 请求构造 ---------------- */
+
+function buildRequest() {
+  const req = {
+    ruleset: $("ruleset").value,
+    hand: $("hand").value.trim(),
+    turn: Number($("turn").value) || 1,
+    is_tsumo: $("tsumo").checked,
+    flowers: Number($("flowers").value) || 0,
+  };
+  if (!req.hand) throw new Error("请先填手牌");
+  const wall = $("wall").value.trim();
+  if (wall !== "") req.wall_remaining = Number(wall);
+  const agari = $("agari").value.trim();
+  if (agari) req.agari_tile = agari;
+  const visible = $("visible").value.trim();
+  if (visible) req.visible = visible;
+  const def = $("deficiency").value;
+  if (def) req.deficiency_suit = def;
+  if (state.melds.length) req.melds = state.melds.map((m) => ({kind: m.kind, tile: m.tile}));
+  return req;
+}
+
+/* ---------------- 渲染：概览 ---------------- */
+
+function shantenText(r) {
+  if (r.agari_blocked) return ["形状已成和牌", "warn", "规则不允许"];
+  if (r.is_agari) return ["已和牌", "ok", ""];
+  if (r.shanten === 0) return ["听牌", "ok", ""];
+  return [r.shanten + " 向听", r.shanten <= 2 ? "warn" : "", ""];
+}
+
+function renderOverview(r) {
+  const cards = $("cards");
+  cards.innerHTML = "";
+
+  const add = (label, value, sub, cls) => {
+    const c = el("div", "card");
+    c.appendChild(el("div", "k", label));
+    const v = el("div", "v " + (cls || ""), value);
+    if (sub) {
+      const s = el("small", null, " " + sub);
+      v.appendChild(s);
+    }
+    c.appendChild(v);
+    cards.appendChild(c);
+  };
+
+  const [st, cls] = shantenText(r);
+  add("向听", st, "", cls);
+  add("进张", r.ukeire || 0, "张", r.ukeire > 0 ? "ok" : "");
+  if (r.probability) {
+    add("和牌率", pct(r.probability.win_final), "末巡", r.probability.win_final > .35 ? "ok" : "");
+    add("听牌率", pct(r.probability.tenpai_final), "末巡");
+    add("期望摸牌", r.probability.expected_draws === null ? "—" : num(r.probability.expected_draws, 1), "巡");
+  }
+  if (r.safety) {
+    add("守备效率", pct(r.safety.defense_efficiency), "安全牌占比");
+  }
+  if (r.score && r.score.ok) {
+    add("打点", r.score.fan + " 番", r.score.points + " 点", r.score.fan >= 8 ? "ok" : "");
+  }
+
+  // 待牌
+  const ww = $("waitWrap");
+  ww.innerHTML = "";
+  if (r.waits && Object.keys(r.waits).length) {
+    ww.appendChild(el("label", null, "待牌 / 有效牌"));
+    ww.appendChild(tileChips(r.waits));
+  } else if (r.is_tenpai) {
+    ww.appendChild(el("label", null, "待牌"));
+    ww.appendChild(el("div", "empty", "需要指定和牌张才能算番"));
+  }
+
+  // 攻守建议
+  const adviceBox = $("scoreMini");
+  adviceBox.innerHTML = "";
+  if (r.advice) {
+    const card = el("div", "card");
+    card.appendChild(el("div", "k", "攻守建议"));
+    const v = el("div", "v ok", r.advice.advice);
+    v.style.fontSize = "18px";
+    card.appendChild(v);
+    const p = el("div", null, r.advice.reason || "");
+    p.style.fontSize = "12px";
+    p.style.color = "var(--muted)";
+    card.appendChild(p);
+    adviceBox.appendChild(card);
+  }
+  if (r.score && r.score.ok) {
+    const card = el("div", "card");
+    card.style.marginTop = "10px";
+    card.appendChild(el("div", "k", "番种"));
+    card.appendChild(el("div", null, r.score.fan_items.map((i) => i.name + i.fan).join(" + ")));
+    adviceBox.appendChild(card);
+  }
+
+  // 警告
+  const warns = $("warnWrap");
+  warns.innerHTML = "";
+  if (r.warnings && r.warnings.length) {
+    const ul = el("ul", "warn-list");
+    r.warnings.forEach((w) => ul.appendChild(el("li", null, w)));
+    warns.appendChild(ul);
+  }
+  if (r.score && r.score.ok === false && r.score.notes && r.score.notes.length) {
+    const ul = el("ul", "warn-list");
+    r.score.notes.forEach((w) => ul.appendChild(el("li", null, w)));
+    warns.appendChild(ul);
+  }
+}
+
+/* ---------------- 渲染：弃牌 ---------------- */
+
+function renderDiscards(r) {
+  const box = $("discardTable");
+  box.innerHTML = "";
+  const list = r.discards || [];
+  if (!list.length) {
+    box.appendChild(el("div", "empty",
+      r.is_agari ? "已经和牌，只算番点数（见「番种点数」）" : "需要 14 张手牌（摸牌后）才能给弃牌建议"));
+    $("discardDetail").innerHTML = "";
+    return;
+  }
+  const maxWin = Math.max.apply(null, list.map((d) => d.win_prob).concat([1e-6]));
+  const table = el("table");
+  const thead = el("thead");
+  const hr = el("tr");
+  ["打", "向听", "进张", "和牌率", "放铳率", "期望值", "说明"].forEach((h) => hr.appendChild(el("th", null, h)));
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = el("tbody");
+  list.forEach((d, idx) => {
+    const tr = el("tr");
+    if (idx === 0) tr.className = "picked";
+    if (d.forced) tr.className = "forced";
+    tr.appendChild(el("td", null, d.name));
+    tr.appendChild(el("td", "num", d.shanten === 0 ? "听牌" : d.shanten));
+    tr.appendChild(el("td", "num", d.ukeire));
+    const wd = el("td", "num");
+    wd.appendChild(document.createTextNode(pct(d.win_prob)));
+    tr.appendChild(wd);
+    tr.appendChild(el("td", "num", pct(d.deal_prob)));
+    tr.appendChild(el("td", "num", num(d.ev, 2)));
+    tr.appendChild(el("td", null, d.note || ""));
+    tr.style.cursor = "pointer";
+    tr.addEventListener("click", () => {
+      state.pickedDiscard = d.tile;
+      Array.from(tbody.children).forEach((x) => x.classList.remove("picked"));
+      tr.classList.add("picked");
+      renderDiscardDetail(d, r);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  box.appendChild(table);
+  renderDiscardDetail(list[0], r);
+}
+
+function renderDiscardDetail(d, r) {
+  const box = $("discardDetail");
+  box.innerHTML = "";
+  const card = el("div", "card");
+  card.appendChild(el("div", "k", "打出 " + d.name + " 之后"));
+  const kv = el("div", "kv");
+  const rows = [
+    ["向听", d.shanten === 0 ? "听牌" : d.shanten + " 向听"],
+    ["进张", d.ukeire + " 张"],
+    ["和牌率", pct(d.win_prob)],
+    ["放铳率", pct(d.deal_prob)],
+    ["危险度", num(d.danger, 3)],
+    ["和牌点", num(d.win_points, 1)],
+    ["期望值", num(d.ev, 2)],
+  ];
+  rows.forEach(([k, v]) => { kv.appendChild(el("div", null, k)); kv.appendChild(el("div", null, v)); });
+  card.appendChild(kv);
+  if (d.ukeire_tiles && Object.keys(d.ukeire_tiles).length) {
+    card.appendChild(el("div", "k", "有效牌"));
+    card.appendChild(tileChips(d.ukeire_tiles));
+  }
+  box.appendChild(card);
+}
+
+/* ---------------- 渲染：番种 ---------------- */
+
+function renderScore(r) {
+  const box = $("scorePanel");
+  box.innerHTML = "";
+  const s = r.score;
+  if (!s) {
+    box.appendChild(el("div", "empty",
+      "这份报告没有番种计算。想算番：把和牌张填上，或者让手牌刚好是 14 张和牌形。"));
+    return;
+  }
+  if (!s.ok) {
+    const card = el("div", "card");
+    card.appendChild(el("div", "k", "不能和"));
+    const ul = el("ul", "warn-list");
+    (s.notes || ["手牌不构成和牌形"]).forEach((n) => ul.appendChild(el("li", null, n)));
+    card.appendChild(ul);
+    box.appendChild(card);
+    return;
+  }
+  const cards = el("div", "cards");
+  const mk = (k, v, sub) => {
+    const c = el("div", "card");
+    c.appendChild(el("div", "k", k));
+    const val = el("div", "v", v);
+    if (sub) val.appendChild(el("small", null, " " + sub));
+    c.appendChild(val);
+    cards.appendChild(c);
+  };
+  mk("番数", s.fan);
+  mk("点数", s.points, s.payments && s.payments.each ? "（自摸每家）" : "");
+  cards.style.marginBottom = "14px";
+  box.appendChild(cards);
+
+  const table = el("table");
+  const thead = el("thead");
+  const hr = el("tr");
+  ["番种", "番数", "说明"].forEach((h) => hr.appendChild(el("th", null, h)));
+  thead.appendChild(hr);
+  table.appendChild(thead);
+  const tbody = el("tbody");
+  (s.fan_items || []).forEach((i) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, i.name));
+    tr.appendChild(el("td", "num", i.fan));
+    tr.appendChild(el("td", null, i.detail || ""));
+    tbody.appendChild(tr);
+  });
+  const total = el("tr");
+  total.appendChild(el("td", null, "合计"));
+  total.appendChild(el("td", "num", s.fan));
+  total.appendChild(el("td", null, ""));
+  total.style.fontWeight = "700";
+  tbody.appendChild(total);
+  table.appendChild(tbody);
+  box.appendChild(table);
+
+  if (s.payments) {
+    const p = el("div", "card");
+    p.style.marginTop = "14px";
+    p.appendChild(el("div", "k", "支付"));
+    p.appendChild(el("div", null, JSON.stringify(s.payments, null, 0).replace(/[{}"]/g, "")));
+    box.appendChild(p);
+  }
+}
+
+/* ---------------- 渲染：概率曲线 ---------------- */
+
+function renderCurve() {
+  const canvas = $("chart");
+  const r = state.report;
+  const note = $("curveNote");
+  note.textContent = "";
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 600;
+  const cssH = canvas.clientHeight || 280;
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const prob = r && r.probability;
+  if (!prob || !prob.win_by_turn || !prob.win_by_turn.length) {
+    ctx.fillStyle = "#8b96a8";
+    ctx.font = "13px sans-serif";
+    ctx.fillText("没有概率数据", 16, 28);
+    return;
+  }
+
+  const pad = {l: 44, r: 14, t: 16, b: 30};
+  const w = cssW - pad.l - pad.r;
+  const h = cssH - pad.t - pad.b;
+  const n = prob.win_by_turn.length;
+  const x = (i) => pad.l + (n <= 1 ? 0 : (i / (n - 1)) * w);
+  const y = (v) => pad.t + (1 - v) * h;
+
+  // 网格
+  ctx.strokeStyle = "#e6eaf3";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#8b96a8";
+  ctx.font = "11px " + "ui-monospace, monospace";
+  [0, 0.25, 0.5, 0.75, 1].forEach((v) => {
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y(v));
+    ctx.lineTo(pad.l + w, y(v));
+    ctx.stroke();
+    ctx.fillText(Math.round(v * 100) + "%", 6, y(v) + 4);
+  });
+  for (let i = 0; i < n; i += 3) {
+    ctx.fillText("巡" + (i + 1), x(i) - 8, cssH - 10);
+  }
+
+  const line = (data, color, width) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineJoin = "round";
+    data.forEach((v, i) => {
+      const px = x(i), py = y(v);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.fillStyle = color;
+    data.forEach((v, i) => {
+      if (i % 3 === 0 || i === n - 1) {
+        ctx.beginPath();
+        ctx.arc(x(i), y(v), 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  };
+
+  line(prob.tenpai_by_turn, "#c9a227", 2);
+  line(prob.win_by_turn, "#3554d1", 2.5);
+
+  // 图例
+  const legend = (label, color, i) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(pad.l + w - 116 + i * 60, 6, 12, 3);
+    ctx.fillStyle = "#1b2330";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(label, pad.l + w - 100 + i * 60, 11);
+  };
+  legend("和牌率", "#3554d1", 0);
+  legend("听牌率", "#c9a227", 1);
+
+  note.textContent = "剩余牌山 " + (prob.unseen || r.unseen || "—") + " 张（未见面）· 累计和牌率 "
+    + pct(prob.win_final) + " · 流局概率 " + pct(prob.draw_probability);
+}
+
+/* ---------------- 渲染：方程对照 ---------------- */
+
+async function renderEquations() {
+  const box = $("equationTable");
+  if (state.protocol) { paintEquations(box, state.protocol); return; }
+  try {
+    state.protocol = await api("protocol");
+  } catch (e) {
+    box.textContent = "加载协议失败：" + e.message;
+    return;
+  }
+  paintEquations(box, state.protocol);
+}
+
+function paintEquations(box, proto) {
+  box.innerHTML = "";
+  box.className = "";
+  const p = el("p", null,
+    "45 条方程里，有些是组合数学直接算出来的（exact），有些是有假设的模型（model），"
+    + "还有一些在国标/四川/广东里根本不存在（n/a）。标出来比混在一起有用。");
+  p.style.fontSize = "12px";
+  p.style.color = "var(--muted)";
+  box.appendChild(p);
+
+  const table = el("table");
+  const thead = el("thead");
+  const hr = el("tr");
+  ["#", "方程", "实现", "类型", "说明"].forEach((h) => hr.appendChild(el("th", null, h)));
+  thead.appendChild(hr);
+  table.appendChild(thead);
+  const tbody = el("tbody");
+  (proto.equations || []).forEach((e) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", "num", e.id));
+    tr.appendChild(el("td", null, e.name));
+    const impl = el("td", null, e.impl.replace("mahjong_kernel.", ""));
+    impl.style.fontFamily = "var(--mono)";
+    impl.style.fontSize = "11px";
+    impl.style.whiteSpace = "normal";
+    tr.appendChild(impl);
+    const kind = el("td");
+    const tag = el("span", "tag " + (e.kind === "n/a" ? "na" : e.kind),
+      e.kind === "exact" ? "精确" : (e.kind === "model" ? "模型" : "不适用"));
+    kind.appendChild(tag);
+    tr.appendChild(kind);
+    const note = el("td", null, e.note);
+    note.style.whiteSpace = "normal";
+    note.style.fontSize = "12px";
+    note.style.color = "var(--muted)";
+    tr.appendChild(note);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  box.appendChild(table);
+}
+
+/* ---------------- 主流程 ---------------- */
+
+async function compute() {
+  let req;
+  try { req = buildRequest(); }
+  catch (e) { setStatus(e.message, true); return; }
+
+  $("calc").disabled = true;
+  setStatus("计算中…", false);
+  const t0 = performance.now();
+  try {
+    const report = await api("analyze", req);
+    state.report = report;
+    state.pickedDiscard = null;
+    renderOverview(report);
+    renderDiscards(report);
+    renderScore(report);
+    if (state.tab === "curve") renderCurve();
+    const ms = Math.round(performance.now() - t0);
+    $("timing").textContent = ms + " ms";
+    setStatus(report.ok ? ("就绪 · " + (report.ruleset ? report.ruleset.name : "")) : "算不了，看警告", !report.ok);
+  } catch (e) {
+    setStatus("出错：" + e.message, true);
+    $("timing").textContent = "";
+  } finally {
+    $("calc").disabled = false;
+  }
+}
+
+function switchTab(name) {
+  state.tab = name;
+  ["overview", "discards", "score", "curve", "equations"].forEach((t) => {
+    $("tab-" + t).hidden = (t !== name);
+  });
+  Array.from($("tabs").children).forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  if (name === "curve") renderCurve();
+  if (name === "equations") renderEquations();
+}
+
+/* ---------------- 初始化 ---------------- */
+
+function renderMelds() {
+  const ul = $("meldList");
+  ul.innerHTML = "";
+  if (!state.melds.length) {
+    const li = el("li", null, "（没有副露）");
+    li.style.color = "var(--muted)";
+    ul.appendChild(li);
+    return;
+  }
+  state.melds.forEach((m, i) => {
+    const li = el("li");
+    li.appendChild(el("span", null,
+      KIND_CN[m.kind] + " " + (m.label || tileName(m.tile))));
+    const del = el("button", null, "删除");
+    del.type = "button";
+    del.addEventListener("click", () => { state.melds.splice(i, 1); renderMelds(); compute(); });
+    li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+
+const EXAMPLES = [
+  ["国标 · 听牌", {ruleset: "gb", hand: "123m456p789s11z235m", turn: 5}],
+  ["国标 · 已和牌", {ruleset: "gb", hand: "123m456p789s111z22z", agari: "2z"}],
+  ["十三幺", {ruleset: "gb", hand: "19m19p19s12345677z", agari: "7z"}],
+  ["九莲宝灯", {ruleset: "gb", hand: "11123456789995m", agari: "5m"}],
+  ["四川 · 定缺", {ruleset: "sichuan", hand: "123m456m789m234p55s", deficiency: "s", turn: 3}],
+  ["广东 · 推倒和", {ruleset: "guangdong", hand: "11122233344455m", agari: "5m"}],
+  ["天崩开局", {ruleset: "gb", hand: "19m19p19s1234z55z", turn: 8}],
+];
+
+function applyExample(ex) {
+  $("ruleset").value = ex.ruleset || "gb";
+  $("hand").value = ex.hand || "";
+  $("turn").value = ex.turn || 1;
+  $("agari").value = ex.agari || "";
+  $("deficiency").value = ex.deficiency || "";
+  $("wall").value = "";
+  $("visible").value = "";
+  $("tsumo").checked = false;
+  state.melds = [];
+  renderMelds();
+  compute();
+}
+
+async function init() {
+  try {
+    const health = await api("health");
+    $("verLine").textContent = "内核 v" + health.version;
+  } catch (e) {
+    setStatus("连不上服务：" + e.message, true);
+  }
+
+  try {
+    const rs = await api("rulesets");
+    state.rulesets = rs.rulesets || [];
+    const sel = $("ruleset");
+    sel.innerHTML = "";
+    state.rulesets.forEach((r) => {
+      const o = document.createElement("option");
+      o.value = r.key;
+      o.textContent = r.name + (r.min_fan ? "（" + r.min_fan + " 番起和）" : "");
+      sel.appendChild(o);
+    });
+    sel.value = "gb";
+  } catch (e) {
+    setStatus("读取规则失败：" + e.message, true);
+  }
+
+  const ex = $("examples");
+  EXAMPLES.forEach(([label, payload]) => {
+    const b = el("button", null, label);
+    b.type = "button";
+    b.addEventListener("click", () => applyExample(payload));
+    ex.appendChild(b);
+  });
+
+  $("calc").addEventListener("click", compute);
+  $("hand").addEventListener("keydown", (e) => { if (e.key === "Enter") compute(); });
+  ["turn", "wall", "agari", "visible"].forEach((id) => {
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") compute(); });
+  });
+  $("tsumo").addEventListener("change", () => { if (state.report) compute(); });
+  $("ruleset").addEventListener("change", () => { if (state.report) compute(); });
+  $("shot").addEventListener("click", () => $("shotFile").click());
+  $("shotFile").addEventListener("change", async (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    setStatus("识别中…");
+    const dataUrl = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(new Error("读不了这个文件"));
+      fr.readAsDataURL(file);
+    });
+    try {
+      const res = await api("recognize", {
+        image: dataUrl,
+        ruleset: $("ruleset").value,
+        turn: Number($("turn").value) || 1,
+      });
+      if (!res.ok || !res.tiles || !res.tiles.length) {
+        throw new Error((res.warnings && res.warnings[0]) || "没识别出手牌");
+      }
+      $("hand").value = res.request.hand;
+      state.melds = (res.request.melds || []).map((m) => ({kind: m.kind, tile: m.tile}));
+      renderMelds();
+      const warn = res.warnings && res.warnings.length;
+      setStatus("识别完成" + (warn ? "，有 " + warn + " 条提示（见「概览」）" : ""),
+                Boolean(warn));
+      compute();
+    } catch (err) {
+      setStatus("识别失败：" + err.message, true);
+    } finally {
+      ev.target.value = "";
+    }
+  });
+
+  $("clear").addEventListener("click", () => {
+    $("hand").value = "";
+    $("agari").value = "";
+    $("visible").value = "";
+    $("wall").value = "";
+    $("deficiency").value = "";
+    state.melds = [];
+    renderMelds();
+    state.report = null;
+    $("cards").innerHTML = "";
+    $("waitWrap").innerHTML = "";
+    $("warnWrap").innerHTML = "";
+    $("scoreMini").innerHTML = "";
+    $("discardTable").innerHTML = "";
+    $("discardDetail").innerHTML = "";
+    $("scorePanel").innerHTML = "";
+    setStatus("就绪", false);
+  });
+
+  Array.from($("tabs").children).forEach((b) => {
+    b.addEventListener("click", () => switchTab(b.dataset.tab));
+  });
+
+  // 副露对话框
+  const dlg = $("meldDlg");
+  $("addMeld").addEventListener("click", () => {
+    $("meldTile").value = "";
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    setTimeout(() => $("meldTile").focus(), 30);
+  });
+  $("meldCancel").addEventListener("click", () => dlg.close());
+  $("meldOk").addEventListener("click", async () => {
+    const kind = $("meldKind").value;
+    const text = $("meldTile").value.trim();
+    if (!text) { setStatus("请填一张牌", true); return; }
+    const T = {m: 0, p: 9, s: 18, z: 27, "万": 0, "筒": 9, "饼": 9, "条": 18, "索": 18};
+    let tile = null, label = text;
+    const mnum = text.match(/^([1-9])\s*([mpszw万筒饼条索])$/);
+    const honor = {"东": 27, "南": 28, "西": 29, "北": 30, "白": 31, "发": 32, "中": 33};
+    if (mnum) {
+      const r = Number(mnum[1]), s = T[mnum[2]];
+      tile = s === 27 ? 26 + r : s + r - 1;
+    } else if (honor[text] !== undefined) {
+      tile = honor[text];
+    }
+    if (tile === null || tile < 0 || tile > 33) { setStatus("解析不了这张牌：" + text, true); return; }
+    state.melds.push({kind: kind, tile: tile, label: label});
+    renderMelds();
+    dlg.close();
+    compute();
+  });
+
+  // 窗口缩放后重画曲线
+  let rt = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => { if (state.tab === "curve") renderCurve(); }, 150);
+  });
+
+  $("protoLink").addEventListener("click", async () => {
+    try {
+      const p = await api("protocol");
+      $("protoVer").textContent = p.protocol;
+      switchTab("equations");
+    } catch (e) { setStatus("读取协议失败：" + e.message, true); }
+  });
+
+  renderMelds();
+  compute();
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+include README.md LICENSE requirements.txt pyproject.toml
+recursive-include docs *.md
+recursive-include tests *.py
+recursive-include webui *.html
+recursive-include desktop *.py
+recursive-include vision_data *.npz *.json *.png
+global-exclude __pycache__/* *.py[cod]

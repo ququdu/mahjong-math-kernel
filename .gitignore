@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# 标定时生成的个人素材（模板包和版面是别人机器上的游戏截图，不适合公开）
+vision_data/templates.npz
+vision_data/layout.json
+
+# 仓库里只保留合成出来的演示素材（demo_*），它们不含任何真实游戏截图
+
+# 原始草稿：45 条方程的输入清单 + 一段有 bug 的 Python 草稿，只做参考，
+# 发布时不包含（避免让人误以为那是官方实现）
+新建文本文档.txt
