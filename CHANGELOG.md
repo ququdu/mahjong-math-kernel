@@ -2,6 +2,12 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [停止维护]
+
+- 仓库转为「不再更新」状态：v1.0.0 即最终版本。
+- 移除 `.github/workflows/tests.yml`：主分支测试工作流不再自动运行，
+  也不会再产生 CI 通知。本地仍可随时 `python -m pytest tests -q` 自检。
+
 ## [1.0.0] - 2026-01-01
 
 首个版本：把一份 45 条方程的清单落成可运行、可验证的数学内核。

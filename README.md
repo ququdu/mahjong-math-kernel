@@ -1,11 +1,12 @@
 # 麻将数学内核 · Mahjong Math Kernel
 
-[![tests](https://github.com/ququdu/mahjong-math-kernel/actions/workflows/tests.yml/badge.svg)](https://github.com/ququdu/mahjong-math-kernel/actions/workflows/tests.yml)
+![tests](https://img.shields.io/badge/tests-132%20passed-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 
 > 🔒 **这个仓库已停止维护**：v1.0.0 的内容是完整的（132 个测试全绿、文档齐全），
-> 之后不再更新。代码仍可自由使用、修改、分发（MIT）。有疑问欢迎看
+> 之后不再更新，GitHub Actions 工作流也已移除（不再有任何自动检查/通知）。
+> 代码仍可自由使用、修改、分发（MIT）。有疑问欢迎看
 > [docs/faq.md](docs/faq.md) 和 [docs/math.md](docs/math.md)，但 issue 可能不会回。
 >
 > 🔒 **Archived / unmaintained**: v1.0.0 is feature-complete. No further updates.
