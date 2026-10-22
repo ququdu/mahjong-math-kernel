@@ -31,3 +31,9 @@ vision_data/layout.json
 # 原始草稿：45 条方程的输入清单 + 一段有 bug 的 Python 草稿，只做参考，
 # 发布时不包含（避免让人误以为那是官方实现）
 新建文本文档.txt
+
+# 临时调试文件
+_*.json
+_*.zip
+_*.html
+_logs/
