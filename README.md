@@ -4,6 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 
+> 🔒 **这个仓库已停止维护**：v1.0.0 的内容是完整的（132 个测试全绿、文档齐全），
+> 之后不再更新。代码仍可自由使用、修改、分发（MIT）。有疑问欢迎看
+> [docs/faq.md](docs/faq.md) 和 [docs/math.md](docs/math.md)，但 issue 可能不会回。
+>
+> 🔒 **Archived / unmaintained**: v1.0.0 is feature-complete. No further updates.
+> Still free to use under MIT. Issues may go unanswered.
+
 > ⚠️ **定位声明**：这是一个**数学/概率教学与离线研究工具**。
 > 不抓屏、不监听游戏窗口、不自动操作、不做任何形式的代打或线上对战辅助，
 > 也不涉及任何金钱、下注或胜率变现。详见 [DISCLAIMER.md](DISCLAIMER.md)。

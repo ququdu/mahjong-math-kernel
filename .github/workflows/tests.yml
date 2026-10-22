@@ -1,9 +1,9 @@
 name: tests
 
+# 这个仓库已停止维护，工作流保留但只允许手动运行。
+# 这样不会再有任何自动化触发，也就不会有 CI 相关的邮件通知。
+# 想恢复自动跑，把下面换成 push/pull_request 即可。
 on:
-  push:
-    branches: [ main ]
-  pull_request:
   workflow_dispatch:
 
 jobs:
