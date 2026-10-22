@@ -10,6 +10,11 @@ jobs:
   test:
     name: py${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      # Windows runner 的控制台默认不是 UTF-8，中文断言消息会变成
+      # UnicodeEncodeError 把真正的失败信息盖掉
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
     strategy:
       fail-fast: false
       matrix:
@@ -28,11 +33,29 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest pillow numpy
 
-      - name: 跑测试
-        run: python -m pytest tests -q
+      # 按文件拆开跑：CI 上挂了能直接从 step 名字看出是哪个文件
+      - name: 跑测试 · 牌表示与向听
+        if: always()
+        run: python -m pytest tests/test_shanten.py -q
+      - name: 跑测试 · 番种与算分
+        if: always()
+        run: python -m pytest tests/test_score.py -q
+      - name: 跑测试 · 概率与期望
+        if: always()
+        run: python -m pytest tests/test_probability_ev.py -q
+      - name: 跑测试 · 引擎与接口
+        if: always()
+        run: python -m pytest tests/test_engine_api.py -q
+      - name: 跑测试 · 截图识别
+        if: always()
+        run: python -m pytest tests/test_vision.py -q
+      - name: 跑测试 · 桌面版
+        if: always()
+        run: python -m pytest tests/test_desktop.py -q
 
       # 内核本身必须零依赖，单独验一次
       - name: 验证内核不依赖第三方包
+        if: always()
         shell: bash
         run: |
           python -c 'import sys; from mahjong_kernel import Engine; r = Engine().analyze({"hand": "123m456p789s11z235m", "turn": 5}); bad = [m for m in ("numpy", "PIL", "cv2") if m in sys.modules]; print("shanten =", r["shanten"], "| 第三方模块 =", bad); assert r["shanten"] == 0, "向听算错了"; assert not bad, "内核竟然 import 了第三方包: %r" % bad'
